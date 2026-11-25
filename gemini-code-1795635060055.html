@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESTLOS. – Weniger verschwenden. Besser genießen.</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F7F9F7;
+      color: #1F2937;
+    }
+    .brand-dark { background-color: #162E27; }
+    .brand-mid { background-color: #28483A; }
+    .brand-mint { background-color: #E2F0E4; }
+    .text-brand-dark { color: #162E27; }
+    .text-brand-mid { color: #28483A; }
+    .border-brand-mint { border-color: #E2F0E4; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin-slow { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Toast Benachrichtigung -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden bg-[#162E27] text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-opacity"></div>
+
+  <!-- Navigation -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('dashboard')">
+        <span class="text-2xl font-extrabold tracking-tight text-[#162E27]">RESTLOS.</span>
+        <span class="hidden md:inline-block text-xs text-[#28483A] bg-[#E2F0E4] px-2.5 py-1 rounded-full font-medium">
+          Weniger verschwenden. Besser genießen.
+        </span>
+      </div>
+      <nav class="flex items-center gap-1 sm:gap-2">
+        <button onclick="navigate('dashboard')" id="nav-dashboard" class="nav-btn px-3 py-2 rounded-xl text-sm font-medium transition">Dashboard</button>
+        <button onclick="navigate('fridge')" id="nav-fridge" class="nav-btn px-3 py-2 rounded-xl text-sm font-medium transition">Mein Kühlschrank</button>
+        <button onclick="navigate('add')" id="nav-add" class="nav-btn px-3 py-2 rounded-xl text-sm font-medium transition">+ Hinzufügen</button>
+        <button onclick="navigate('recipes')" id="nav-recipes" class="nav-btn px-3 py-2 rounded-xl text-sm font-medium transition">Rezeptideen</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hauptinhalt -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+
+    <!-- 1. DASHBOARD -->
+    <section id="view-dashboard" class="view-section space-y-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold text-[#162E27]">Hallo! Was kochen wir heute?</h1>
+          <p class="text-gray-600 mt-1">Behalte deine Vorräte im Blick und verwerte Zutaten rechtzeitig.</p>
+        </div>
+        <button onclick="navigate('add')" class="bg-[#28483A] hover:bg-[#162E27] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition self-start">
+          + Lebensmittel hinzufügen
+        </button>
+      </div>
+
+      <!-- Dynamische Infokarten -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div onclick="navigate('fridge', 'all')" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-[#28483A] transition">
+          <p class="text-sm font-medium text-gray-500">Gespeicherte Lebensmittel</p>
+          <p id="stat-total" class="text-3xl font-bold text-[#162E27] mt-2">0</p>
+          <p class="text-xs text-[#28483A] mt-2">Gesamter Bestand</p>
+        </div>
+        <div onclick="navigate('fridge', 'soon')" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-amber-400 transition">
+          <p class="text-sm font-medium text-gray-500">Läuft bald ab (1–7 Tage)</p>
+          <p id="stat-soon" class="text-3xl font-bold text-amber-600 mt-2">0</p>
+          <p class="text-xs text-amber-700 mt-2">Bevorzugt verbrauchen</p>
+        </div>
+        <div onclick="navigate('fridge', 'expired')" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-red-400 transition">
+          <p class="text-sm font-medium text-gray-500">Datum erreicht / überschritten</p>
+          <p id="stat-expired" class="text-3xl font-bold text-red-600 mt-2">0</p>
+          <p class="text-xs text-red-700 mt-2">Bitte prüfen</p>
+        </div>
+      </div>
+
+      <!-- KI-Rezeptgenerator Banner -->
+      <div class="bg-[#E2F0E4] rounded-3xl p-6 sm:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-[#28483A]/10">
+        <div class="space-y-2 max-w-xl">
+          <span class="inline-block text-xs font-bold uppercase tracking-wider text-[#28483A] bg-white px-3 py-1 rounded-full">KI-Rezeptgenerator</span>
+          <h2 class="text-2xl sm:text-3xl font-bold text-[#162E27]">Was kann ich heute kochen?</h2>
+          <p class="text-[#28483A] text-base">Entdecke leckere Rezepte mit deinen vorhandenen Lebensmitteln. Bald ablaufende Zutaten werden automatisch bevorzugt.</p>
+        </div>
+        <button onclick="generateRecipes()" class="bg-[#162E27] hover:bg-[#28483A] text-white px-7 py-4 rounded-2xl font-semibold text-base shadow-md transition whitespace-nowrap flex items-center gap-2">
+          <span>Rezepte generieren</span>
+          <span>→</span>
+        </button>
+      </div>
+
+      <!-- Deine Lebensmittel (Vorschau) -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-[#162E27]">Deine Lebensmittel</h2>
+          <button onclick="navigate('fridge')" class="text-sm font-semibold text-[#28483A] hover:underline">Alle anzeigen →</button>
+        </div>
+        <div id="dashboard-items-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- 2. MEIN KÜHLSCHRANK (ABLAUFDATEN-TRACKER) -->
+    <section id="view-fridge" class="view-section hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-[#162E27]">Mein Kühlschrank & Vorräte</h1>
+          <p class="text-sm text-gray-600">Sortiert nach Dringlichkeit – bald ablaufende Lebensmittel stehen oben.</p>
+        </div>
+        <button onclick="navigate('add')" class="bg-[#162E27] hover:bg-[#28483A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition self-start">
+          + Lebensmittel hinzufügen
+        </button>
+      </div>
+
+      <!-- Filterleiste -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex flex-wrap gap-2">
+          <button onclick="setFridgeFilter('all')" class="filter-chip px-3.5 py-1.5 rounded-xl text-sm font-medium bg-[#162E27] text-white" data-filter="all">Alle</button>
+          <button onclick="setFridgeFilter('soon')" class="filter-chip px-3.5 py-1.5 rounded-xl text-sm font-medium bg-gray-100 text-gray-700" data-filter="soon">Bald ablaufend</button>
+          <button onclick="setFridgeFilter('expired')" class="filter-chip px-3.5 py-1.5 rounded-xl text-sm font-medium bg-gray-100 text-gray-700" data-filter="expired">Überschritten</button>
+          <button onclick="setFridgeFilter('fresh')" class="filter-chip px-3.5 py-1.5 rounded-xl text-sm font-medium bg-gray-100 text-gray-700" data-filter="fresh">Noch frisch</button>
+        </div>
+        <select id="storage-filter" onchange="renderFridge()" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm text-gray-700 bg-white">
+          <option value="all">Alle Lagerorte</option>
+          <option value="Kühlschrank">Kühlschrank</option>
+          <option value="Gefrierschrank">Gefrierschrank</option>
+          <option value="Vorratsschrank">Vorratsschrank</option>
+        </select>
+      </div>
+
+      <div id="fridge-items-list" class="space-y-3"></div>
+    </section>
+
+    <!-- 3. LEBENSMITTEL HINZUFÜGEN -->
+    <section id="view-add" class="view-section hidden space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold text-[#162E27]">Lebensmittel hinzufügen</h1>
+        <p class="text-sm text-gray-600">Wähle ein Produkt aus dem Katalog oder lege ein eigenes Lebensmittel an.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Katalog -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Lebensmittel suchen (z. B. Tomaten, Milch, Lachs)..." class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#28483A]" />
+            <button onclick="selectCatalogItem('')" class="bg-[#E2F0E4] text-[#162E27] hover:bg-[#28483A] hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition">
+              + Eigenes Produkt
+            </button>
+          </div>
+
+          <!-- Kategorien -->
+          <div id="category-tabs" class="flex flex-wrap gap-2"></div>
+
+          <!-- Produkt-Grid -->
+          <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-2 max-h-[420px] overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Eingabeformular -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit sticky top-24">
+          <h2 id="form-title" class="text-lg font-bold text-[#162E27] mb-4">Details eintragen</h2>
+          <form id="item-form" onsubmit="saveItem(event)" class="space-y-4">
+            <input type="hidden" id="edit-id" value="" />
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Produktname *</label>
+              <input type="text" id="item-name" required placeholder="z. B. Kirschtomaten" class="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#28483A]" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Menge *</label>
+                <input type="number" step="any" min="0.01" id="item-amount" required value="1" class="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#28483A]" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Einheit *</label>
+                <select id="item-unit" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#28483A]">
+                  <option value="Stück">Stück</option>
+                  <option value="Gramm">Gramm</option>
+                  <option value="Kilogramm">Kilogramm</option>
+                  <option value="Milliliter">Milliliter</option>
+                  <option value="Liter">Liter</option>
+                  <option value="Packung">Packung</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Ablaufdatum (manuell eintragen) *</label>
+              <input type="date" id="item-expiry" required class="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#28483A]" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Datumstyp *</label>
+              <select id="item-datetype" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#28483A]">
+                <option value="MHD">Mindesthaltbarkeitsdatum (MHD)</option>
+                <option value="Verbrauchsdatum">Verbrauchsdatum („Zu verbrauchen bis“)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Lagerort (optional)</label>
+              <select id="item-storage" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#28483A]">
+                <option value="Kühlschrank">Kühlschrank</option>
+                <option value="Vorratsschrank">Vorratsschrank</option>
+                <option value="Gefrierschrank">Gefrierschrank</option>
+              </select>
+            </div>
+
+            <div class="pt-2 flex gap-2">
+              <button type="submit" class="flex-1 bg-[#162E27] hover:bg-[#28483A] text-white py-2.5 rounded-xl text-sm font-semibold transition">
+                Speichern
+              </button>
+              <button type="button" id="cancel-edit-btn" onclick="resetForm()" class="hidden px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 hover:bg-gray-50">
+                Abbrechen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. REZEPTIDEEN (KI-GENERATOR) -->
+    <section id="view-recipes" class="view-section hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-[#162E27]">KI-Rezeptideen</h1>
+          <p class="text-sm text-gray-600">Abgestimmt auf deinen Vorrat – bald ablaufende Zutaten zuerst.</p>
+        </div>
+        <button onclick="generateRecipes()" class="bg-[#162E27] hover:bg-[#28483A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition self-start">
+          Neue Rezepte generieren
+        </button>
+      </div>
+
+      <div id="recipes-loader" class="hidden bg-white p-12 rounded-2xl border border-gray-100 text-center space-y-3">
+        <div class="w-10 h-10 border-4 border-[#E2F0E4] border-t-[#162E27] rounded-full animate-spin-slow mx-auto"></div>
+        <p class="font-semibold text-[#162E27]">Analysiere deine Lebensmittel & Ablaufdaten...</p>
+        <p class="text-xs text-gray-500">Suche nach den besten Kombinationen für deinen Vorrat.</p>
+      </div>
+
+      <div id="recipes-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+    </section>
+
+    <!-- 5. REZEPTDETAILS -->
+    <section id="view-recipe-detail" class="view-section hidden space-y-6">
+      <button onclick="navigate('recipes')" class="text-sm font-semibold text-[#28483A] hover:underline">← Zurück zu den Rezeptideen</button>
+      <div id="recipe-detail-content" class="bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-gray-100"></div>
+    </section>
+
+  </main>
+
+  <footer class="bg-white border-t border-gray-200 mt-12 py-6">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
+      <span class="font-bold text-[#162E27] text-sm">RESTLOS.</span>
+      <span>Weniger verschwenden. Besser genießen.</span>
+    </div>
+  </footer>
+
+  <script>
+    // --- DATENKATALOG ---
+    const CATALOG = {
+      "Obst": ["Äpfel", "Bananen", "Erdbeeren", "Himbeeren", "Heidelbeeren", "Trauben", "Orangen", "Mandarinen", "Zitronen", "Birnen", "Kiwis", "Mangos", "Ananas", "Wassermelonen", "Avocados", "Pfirsiche"],
+      "Gemüse": ["Tomaten", "Gurken", "Paprika", "Karotten", "Brokkoli", "Blumenkohl", "Zucchini", "Auberginen", "Kartoffeln", "Süßkartoffeln", "Zwiebeln", "Knoblauch", "Salat", "Spinat", "Champignons", "Mais", "Lauch", "Basilikum"],
+      "Milchprodukte": ["Milch", "Hafermilch", "Joghurt", "Naturjoghurt", "Griechischer Joghurt", "Sahne", "Butter", "Frischkäse", "Gouda", "Mozzarella", "Parmesan", "Feta", "Quark", "Skyr", "Schmand"],
+      "Fleisch und Fisch": ["Hähnchenbrust", "Hackfleisch", "Rinderfleisch", "Putenfleisch", "Schinken", "Salami", "Lachs", "Thunfisch", "Garnelen", "Kabeljau", "Speckwürfel"],
+      "Backwaren": ["Toastbrot", "Vollkornbrot", "Brötchen", "Baguette", "Wraps", "Tortillas", "Croissants", "Pita-Brot"],
+      "Grundnahrungsmittel": ["Reis", "Nudeln", "Couscous", "Haferflocken", "Mehl", "Zucker", "Linsen", "Bohnen", "Kichererbsen", "Olivenöl", "Gemüsebrühe"],
+      "Weitere Lebensmittel": ["Eier", "Tofu", "Pesto", "Tomatensoße", "Mayonnaise", "Ketchup", "Senf", "Marmelade", "Honig", "Tiefkühlgemüse", "Pizza", "Pommes", "Kokosmilch"]
+    };
+
+    // --- STATE & STORAGE ---
+    const STORAGE_KEY = 'restlos_inventory_v1';
+    let inventory = [];
+    let selectedCategory = 'Alle';
+    let fridgeFilter = 'all';
+    let generatedRecipes = [];
+
+    function initApp() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        inventory = JSON.parse(saved);
+      } else {
+        // Beispiel-Startbestand für direkten Einstieg (nutzt relative Daten ab heute)
+        inventory = [
+          { id: uid(), name: "Tomaten", amount: 400, unit: "Gramm", expiryDate: offsetDate(2), dateType: "MHD", storage: "Kühlschrank" },
+          { id: uid(), name: "Mozzarella", amount: 1, unit: "Packung", expiryDate: offsetDate(3), dateType: "Verbrauchsdatum", storage: "Kühlschrank" },
+          { id: uid(), name: "Nudeln", amount: 500, unit: "Gramm", expiryDate: offsetDate(120), dateType: "MHD", storage: "Vorratsschrank" },
+          { id: uid(), name: "Zwiebeln", amount: 3, unit: "Stück", expiryDate: offsetDate(12), dateType: "MHD", storage: "Vorratsschrank" },
+          { id: uid(), name: "Spinat", amount: 250, unit: "Gramm", expiryDate: offsetDate(1), dateType: "Verbrauchsdatum", storage: "Kühlschrank" }
+        ];
+        persistInventory();
+      }
+      renderCategoryTabs();
+      renderCatalog();
+      refreshAll();
+    }
+
+    function uid() {
+      return Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+    }
+
+    function offsetDate(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    }
+
+    function persistInventory() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    // --- ABLAUFDATUM LOGIK ---
+    function getDaysRemaining(dateStr) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(dateStr + 'T00:00:00');
+      const diffTime = target - today;
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    function getStatusInfo(item) {
+      const days = getDaysRemaining(item.expiryDate);
+      if (days <= 0) {
+        const notice = item.dateType === 'Verbrauchsdatum'
+          ? 'Verbrauchsdatum erreicht/überschritten – bitte besonders sorgfältig prüfen und Herstellerhinweise beachten.'
+          : 'MHD erreicht/überschritten – bitte mit Sehen, Riechen und Schmecken prüfen.';
+        return {
+          code: 'expired',
+          label: days === 0 ? 'Läuft heute ab' : `Seit ${Math.abs(days)} Tag(en) überschritten`,
+          badgeClass: 'bg-red-100 text-red-800 border-red-200',
+          dotClass: 'bg-red-500',
+          notice
+        };
+      }
+      if (days <= 3) {
+        return {
+          code: 'soon',
+          label: `Noch ${days} Tag${days === 1 ? '' : 'e'}`,
+          badgeClass: 'bg-orange-100 text-orange-800 border-orange-200',
+          dotClass: 'bg-orange-500',
+          notice: null
+        };
+      }
+      if (days <= 7) {
+        return {
+          code: 'soon',
+          label: `Noch ${days} Tage`,
+          badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
+          dotClass: 'bg-amber-400',
+          notice: null
+        };
+      }
+      return {
+        code: 'fresh',
+        label: `Noch ${days} Tage`,
+        badgeClass: 'bg-[#E2F0E4] text-[#162E27] border-[#28483A]/20',
+        dotClass: 'bg-emerald-600',
+        notice: null
+      };
+    }
+
+    function getSortedInventory() {
+      return [...inventory].sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    }
+
+    function formatDateDE(dateStr) {
+      const [y, m, d] = dateStr.split('-');
+      return `${d}.${m}.${y}`;
+    }
+
+    // --- NAVIGATION ---
+    function navigate(view, filterParam = null) {
+      document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-[#E2F0E4]', 'text-[#162E27]', 'font-semibold');
+        btn.classList.add('text-gray-600');
+      });
+      const activeBtn = document.getElementById(`nav-${view}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-[#E2F0E4]', 'text-[#162E27]', 'font-semibold');
+        activeBtn.classList.remove('text-gray-600');
+      }
+
+      if (view === 'fridge' && filterParam) {
+        setFridgeFilter(filterParam);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- DASHBOARD & TRACKER RENDERING ---
+    function refreshAll() {
+      const sorted = getSortedInventory();
+      let soonCount = 0;
+      let expiredCount = 0;
+
+      sorted.forEach(item => {
+        const st = getStatusInfo(item);
+        if (st.code === 'soon') soonCount++;
+        if (st.code === 'expired') expiredCount++;
+      });
+
+      document.getElementById('stat-total').textContent = sorted.length;
+      document.getElementById('stat-soon').textContent = soonCount;
+      document.getElementById('stat-expired').textContent = expiredCount;
+
+      renderDashboardList(sorted);
+      renderFridge();
+    }
+
+    function renderDashboardList(sorted) {
+      const container = document.getElementById('dashboard-items-list');
+      if (sorted.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full bg-white p-8 rounded-2xl border border-gray-100 text-center space-y-3">
+            <p class="text-gray-600">Dein Vorrat ist aktuell leer.</p>
+            <button onclick="navigate('add')" class="bg-[#162E27] text-white px-4 py-2 rounded-xl text-sm font-semibold">Erstes Lebensmittel hinzufügen</button>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = sorted.slice(0, 6).map(item => {
+        const st = getStatusInfo(item);
+        return `
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between gap-3">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h3 class="font-bold text-[#162E27] text-base">${escapeHtml(item.name)}</h3>
+                <p class="text-xs text-gray-500 mt-0.5">${item.amount} ${item.unit} • ${item.storage}</p>
+              </div>
+              <span class="text-xs font-semibold px-2.5 py-1 rounded-full border ${st.badgeClass}">${st.label}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-50">
+              <span>${item.dateType}: <strong>${formatDateDE(item.expiryDate)}</strong></span>
+              <button onclick="consumeItem('${item.id}')" class="text-[#28483A] font-semibold hover:underline">✓ Verbraucht</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function setFridgeFilter(filter) {
+      fridgeFilter = filter;
+      document.querySelectorAll('.filter-chip').forEach(btn => {
+        if (btn.dataset.filter === filter) {
+          btn.classList.add('bg-[#162E27]', 'text-white');
+          btn.classList.remove('bg-gray-100', 'text-gray-700');
+        } else {
+          btn.classList.remove('bg-[#162E27]', 'text-white');
+          btn.classList.add('bg-gray-100', 'text-gray-700');
+        }
+      });
+      renderFridge();
+    }
+
+    function renderFridge() {
+      const container = document.getElementById('fridge-items-list');
+      const storageVal = document.getElementById('storage-filter').value;
+      const sorted = getSortedInventory().filter(item => {
+        const st = getStatusInfo(item);
+        const matchesStatus = fridgeFilter === 'all' || st.code === fridgeFilter;
+        const matchesStorage = storageVal === 'all' || item.storage === storageVal;
+        return matchesStatus && matchesStorage;
+      });
+
+      if (sorted.length === 0) {
+        container.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-500 text-sm">Keine Lebensmittel in dieser Ansicht gefunden.</div>`;
+        return;
+      }
+
+      container.innerHTML = sorted.map(item => {
+        const st = getStatusInfo(item);
+        return `
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <span class="w-3 h-3 rounded-full mt-1.5 shrink-0 ${st.dotClass}"></span>
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-bold text-[#162E27] text-base">${escapeHtml(item.name)}</h3>
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${st.badgeClass}">${st.label}</span>
+                  </div>
+                  <p class="text-xs text-gray-600 mt-1">
+                    Menge: <strong>${item.amount} ${item.unit}</strong> • Lagerort: <strong>${item.storage}</strong> • ${item.dateType}: <strong>${formatDateDE(item.expiryDate)}</strong>
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 self-end sm:self-center">
+                <button onclick="consumeItem('${item.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#E2F0E4] text-[#162E27] hover:bg-[#28483A] hover:text-white transition">✓ Verbraucht</button>
+                <button onclick="editItem('${item.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Bearbeiten</button>
+                <button onclick="deleteItem('${item.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition">Löschen</button>
+              </div>
+            </div>
+            ${st.notice ? `<div class="text-xs bg-red-50 text-red-800 px-3.5 py-2 rounded-xl border border-red-100">${st.notice}</div>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    // --- KATALOG & CRUD ---
+    function renderCategoryTabs() {
+      const cats = ['Alle', ...Object.keys(CATALOG)];
+      document.getElementById('category-tabs').innerHTML = cats.map(cat => `
+        <button type="button" onclick="selectCategory('${cat}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition ${selectedCategory === cat ? 'bg-[#162E27] text-white' : 'bg-[#F7F9F7] text-gray-700 hover:bg-[#E2F0E4]'}">
+          ${cat}
+        </button>
+      `).join('');
+    }
+
+    function selectCategory(cat) {
+      selectedCategory = cat;
+      renderCategoryTabs();
+      renderCatalog();
+    }
+
+    function renderCatalog() {
+      const query = document.getElementById('catalog-search').value.trim().toLowerCase();
+      let items = [];
+      for (const [cat, list] of Object.entries(CATALOG)) {
+        if (selectedCategory === 'Alle' || selectedCategory === cat) {
+          list.forEach(name => {
+            if (!query || name.toLowerCase().includes(query)) {
+              items.push({ name, cat });
+            }
+          });
+        }
+      }
+
+      const grid = document.getElementById('catalog-grid');
+      if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-sm text-gray-500 py-6 text-center">Kein Treffer im Katalog. Du kannst das Produkt rechts direkt als eigenes Lebensmittel eintragen.</div>`;
+        return;
+      }
+
+      grid.innerHTML = items.map(item => `
+        <button type="button" onclick="selectCatalogItem('${escapeHtml(item.name)}')" class="text-left p-3 rounded-xl border border-gray-200 hover:border-[#28483A] hover:bg-[#E2F0E4]/40 transition">
+          <div class="font-semibold text-sm text-[#162E27]">${escapeHtml(item.name)}</div>
+          <div class="text-[11px] text-gray-500 mt-0.5">${item.cat}</div>
+        </button>
+      `).join('');
+    }
+
+    function selectCatalogItem(name) {
+      resetForm();
+      document.getElementById('item-name').value = name;
+      document.getElementById('item-name').focus();
+      if (name) {
+        showToast(`„${name}“ ausgewählt – bitte Menge und Ablaufdatum eintragen.`);
+      }
+    }
+
+    function saveItem(e) {
+      e.preventDefault();
+      const editId = document.getElementById('edit-id').value;
+      const name = document.getElementById('item-name').value.trim();
+      const amount = parseFloat(document.getElementById('item-amount').value);
+      const unit = document.getElementById('item-unit').value;
+      const expiryDate = document.getElementById('item-expiry').value;
+      const dateType = document.getElementById('item-datetype').value;
+      const storage = document.getElementById('item-storage').value;
+
+      if (!name || !expiryDate || isNaN(amount)) return;
+
+      if (editId) {
+        const idx = inventory.findIndex(i => i.id === editId);
+        if (idx !== -1) {
+          inventory[idx] = { id: editId, name, amount, unit, expiryDate, dateType, storage };
+          showToast(`„${name}“ wurde aktualisiert.`);
+        }
+      } else {
+        inventory.push({ id: uid(), name, amount, unit, expiryDate, dateType, storage });
+        showToast(`„${name}“ wurde gespeichert.`);
+      }
+
+      persistInventory();
+      resetForm();
+      refreshAll();
+      navigate('fridge');
+    }
+
+    function editItem(id) {
+      const item = inventory.find(i => i.id === id);
+      if (!item) return;
+      navigate('add');
+      document.getElementById('form-title').textContent = 'Lebensmittel bearbeiten';
+      document.getElementById('edit-id').value = item.id;
+      document.getElementById('item-name').value = item.name;
+      document.getElementById('item-amount').value = item.amount;
+      document.getElementById('item-unit').value = item.unit;
+      document.getElementById('item-expiry').value = item.expiryDate;
+      document.getElementById('item-datetype').value = item.dateType;
+      document.getElementById('item-storage').value = item.storage;
+      document.getElementById('cancel-edit-btn').classList.remove('hidden');
+    }
+
+    function resetForm() {
+      document.getElementById('item-form').reset();
+      document.getElementById('edit-id').value = '';
+      document.getElementById('form-title').textContent = 'Details eintragen';
+      document.getElementById('cancel-edit-btn').classList.add('hidden');
+    }
+
+    function consumeItem(id) {
+      const item = inventory.find(i => i.id === id);
+      inventory = inventory.filter(i => i.id !== id);
+      persistInventory();
+      refreshAll();
+      if (item) showToast(`„${item.name}“ als verbraucht markiert.`);
+    }
+
+    function deleteItem(id) {
+      const item = inventory.find(i => i.id === id);
+      inventory = inventory.filter(i => i.id !== id);
+      persistInventory();
+      refreshAll();
+      if (item) showToast(`„${item.name}“ gelöscht.`);
+    }
+
+    // --- KI-REZEPTGENERATOR ---
+    const RECIPE_TEMPLATES = [
+      {
+        title: "Tomaten-Mozzarella-Pasta mit frischen Kräutern",
+        desc: "Schnelle mediterrane Pasta, ideal um frische Tomaten und Mozzarella rechtzeitig zu verwerten.",
+        time: "20 Min.",
+        difficulty: "Einfach",
+        servings: 2,
+        coreIngredients: ["Tomaten", "Mozzarella", "Nudeln", "Zwiebeln", "Knoblauch", "Basilikum"],
+        pantryBasics: ["Olivenöl", "Salz & Pfeffer"],
+        steps: [
+          "Nudeln in reichlich Salzwasser nach Packungsanweisung al dente kochen.",
+          "Währenddessen Zwiebeln und Knoblauch fein würfeln, Tomaten halbieren und Mozzarella in kleine Würfel schneiden.",
+          "Olivenöl in einer Pfanne erhitzen, Zwiebeln glasig dünsten und Tomaten 4–5 Minuten mitbraten.",
+          "Abgetropfte Nudeln direkt in die Pfanne geben, Mozzarella unterheben bis er leicht schmilzt, und mit Salz, Pfeffer sowie frischem Basilikum abschmecken."
+        ]
+      },
+      {
+        title: "Cremige Spinat-Pfanne mit Kartoffeln & Ei",
+        desc: "Herzhaftes Pfannengericht, das empfindlichen Blattspinat und Vorratsgemüse perfekt kombiniert.",
+        time: "25 Min.",
+        difficulty: "Einfach",
+        servings: 2,
+        coreIngredients: ["Spinat", "Kartoffeln", "Eier", "Zwiebeln", "Knoblauch", "Frischkäse", "Sahne"],
+        pantryBasics: ["Olivenöl", "Muskatnuss", "Salz & Pfeffer"],
+        steps: [
+          "Kartoffeln schälen, in dünne Scheiben schneiden und in einer Pfanne mit etwas Öl ca. 12 Minuten goldbraun braten.",
+          "Gewürfelte Zwiebeln und Knoblauch kurz mitbraten, anschließend den Spinat zugeben und zusammenfallen lassen.",
+          "Mit etwas Frischkäse oder Sahne verfeinern und mit Salz, Pfeffer und Muskat würzen.",
+          "Mulden in die Pfanne drücken, Eier hineinschlagen und zugedeckt 4–5 Minuten stocken lassen."
+        ]
+      },
+      {
+        title: "Bunte Gemüse-Reispfanne mit Feta",
+        desc: "Vielseitige One-Pan-Mahlzeit zur Resteverwertung von knackigem Gemüse aus dem Kühlschrank.",
+        time: "30 Min.",
+        difficulty: "Einfach",
+        servings: 2,
+        coreIngredients: ["Reis", "Paprika", "Zucchini", "Karotten", "Tomaten", "Feta", "Zwiebeln"],
+        pantryBasics: ["Gemüsebrühe", "Olivenöl", "Kräuter"],
+        steps: [
+          "Reis nach Packungsanleitung in leicht gesalzenem Wasser oder Brühe garen.",
+          "Vorhandenes Gemüse wie Paprika, Zucchini, Karotten und Zwiebeln in mundgerechte Stücke schneiden.",
+          "Gemüse in einer großen Pfanne scharf anbraten, sodass es noch leicht Biss behält.",
+          "Gekochten Reis unterheben, abschmecken und vor dem Servieren Feta darüber bröckeln."
+        ]
+      },
+      {
+        title: "Überbackene Gemüse-Wraps aus dem Ofen",
+        desc: "Knusprig gefüllte Wraps mit geschmolzenem Käse – ideal für angebrochene Packungen.",
+        time: "25 Min.",
+        difficulty: "Einfach",
+        servings: 2,
+        coreIngredients: ["Wraps", "Tortillas", "Paprika", "Mais", "Bohnen", "Gouda", "Mozzarella", "Tomatensoße", "Hähnchenbrust"],
+        pantryBasics: ["Pfeffer", "Paprikapulver"],
+        steps: [
+          "Backofen auf 200 °C Ober-/Unterhitze vorheizen.",
+          "Vorhandenes Gemüse (und optional gewürfelte Hähnchenbrust) in der Pfanne anbraten und mit Tomatensoße verrühren.",
+          "Wraps mit der Mischung füllen, aufrollen und nebeneinander in eine Auflaufform legen.",
+          "Mit geriebenem Käse bestreuen und ca. 12 Minuten goldbraun überbacken."
+        ]
+      },
+      {
+        title: "Fruchtige Joghurt-Bowl mit Haferflocken",
+        desc: "Frisches Frühstück oder Dessert, um reifes Obst und Milchprodukte schnell zu genießen.",
+        time: "10 Min.",
+        difficulty: "Sehr einfach",
+        servings: 1,
+        coreIngredients: ["Joghurt", "Naturjoghurt", "Griechischer Joghurt", "Skyr", "Quark", "Bananen", "Äpfel", "Beeren", "Erdbeeren", "Heidelbeeren", "Haferflocken", "Honig"],
+        pantryBasics: ["Zimt"],
+        steps: [
+          "Joghurt, Skyr oder Quark in einer Schüssel glatt rühren.",
+          "Vorhandenes Obst waschen, kleinschneiden und auf der Creme anrichten.",
+          "Mit Haferflocken bestreuen und nach Geschmack mit etwas Honig verfeinern."
+        ]
+      }
+    ];
+
+    function generateRecipes() {
+      navigate('recipes');
+      const loader = document.getElementById('recipes-loader');
+      const grid = document.getElementById('recipes-grid');
+      loader.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      setTimeout(() => {
+        loader.classList.add('hidden');
+        const userItems = getSortedInventory();
+
+        // Bewertung jedes Rezepts anhand vorhandener Zutaten & Dringlichkeit
+        const scored = RECIPE_TEMPLATES.map(tpl => {
+          const available = [];
+          const missing = [];
+          let urgencyScore = 0;
+
+          tpl.coreIngredients.forEach(ing => {
+            const match = userItems.find(u => u.name.toLowerCase().includes(ing.toLowerCase()) || ing.toLowerCase().includes(u.name.toLowerCase()));
+            if (match) {
+              const days = getDaysRemaining(match.expiryDate);
+              available.push({ name: `${match.name} (${match.amount} ${match.unit})`, urgent: days <= 7 });
+              urgencyScore += days <= 3 ? 5 : days <= 7 ? 3 : 1;
+            } else {
+              missing.push(ing);
+            }
+          });
+
+          tpl.pantryBasics.forEach(b => missing.push(b));
+
+          return {
+            ...tpl,
+            available,
+            missing,
+            score: urgencyScore + available.length * 2
+          };
+        }).sort((a, b) => b.score - a.score).slice(0, 4);
+
+        generatedRecipes = scored;
+        renderRecipesGrid(scored);
+      }, 650);
+    }
+
+    function renderRecipesGrid(recipes) {
+      const grid = document.getElementById('recipes-grid');
+      grid.innerHTML = recipes.map((rec, idx) => `
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between gap-4 hover:border-[#28483A] transition">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between text-xs text-gray-500">
+              <span class="bg-[#E2F0E4] text-[#162E27] font-semibold px-2.5 py-1 rounded-full">${rec.time} • ${rec.difficulty}</span>
+              <span>${rec.servings} Portionen</span>
+            </div>
+            <h3 class="text-xl font-bold text-[#162E27]">${rec.title}</h3>
+            <p class="text-sm text-gray-600">${rec.desc}</p>
+
+            <div class="pt-2 space-y-2">
+              <p class="text-xs font-bold text-[#28483A] uppercase tracking-wider">Vorhandene Zutaten (${rec.available.length})</p>
+              <div class="flex flex-wrap gap-1.5">
+                ${rec.available.length > 0
+                  ? rec.available.map(a => `<span class="text-xs px-2.5 py-1 rounded-lg ${a.urgent ? 'bg-orange-100 text-orange-800 font-semibold' : 'bg-[#E2F0E4] text-[#162E27]'}">${escapeHtml(a.name)}</span>`).join('')
+                  : '<span class="text-xs text-gray-400">Keine direkten Treffer im Bestand</span>'}
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Zusätzlich benötigt</p>
+              <p class="text-xs text-gray-600">${rec.missing.join(', ')}</p>
+            </div>
+          </div>
+
+          <button onclick="openRecipeDetail(${idx})" class="w-full mt-2 bg-[#162E27] hover:bg-[#28483A] text-white py-2.5 rounded-xl text-sm font-semibold transition">
+            Rezept ansehen
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function openRecipeDetail(idx) {
+      const rec = generatedRecipes[idx];
+      if (!rec) return;
+      navigate('recipe-detail');
+      document.getElementById('recipe-detail-content').innerHTML = `
+        <div class="space-y-6">
+          <div class="border-b border-gray-100 pb-6">
+            <div class="flex flex-wrap gap-2 text-xs font-semibold mb-3">
+              <span class="bg-[#E2F0E4] text-[#162E27] px-3 py-1 rounded-full">⏱ ${rec.time}</span>
+              <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full">Schwierigkeit: ${rec.difficulty}</span>
+              <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full">${rec.servings} Portionen</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-[#162E27]">${rec.title}</h1>
+            <p class="text-gray-600 mt-2">${rec.desc}</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-[#F7F9F7] p-5 rounded-2xl">
+              <h2 class="font-bold text-[#162E27] mb-3">✓ Bereits vorhanden</h2>
+              <ul class="space-y-2 text-sm">
+                ${rec.available.length > 0
+                  ? rec.available.map(a => `<li class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${a.urgent ? 'bg-orange-500' : 'bg-emerald-600'}"></span><span>${escapeHtml(a.name)}</span></li>`).join('')
+                  : '<li class="text-gray-500">Keine</li>'}
+              </ul>
+            </div>
+            <div class="bg-[#F7F9F7] p-5 rounded-2xl">
+              <h2 class="font-bold text-[#162E27] mb-3">+ Noch benötigte Zutaten</h2>
+              <ul class="space-y-2 text-sm text-gray-700">
+                ${rec.missing.map(m => `<li>• ${escapeHtml(m)}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <h2 class="text-xl font-bold text-[#162E27]">Zubereitung Schritt für Schritt</h2>
+            <ol class="space-y-3">
+              ${rec.steps.map((step, i) => `
+                <li class="flex gap-4 items-start bg-[#F7F9F7] p-4 rounded-2xl">
+                  <span class="w-7 h-7 rounded-full bg-[#162E27] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">${i + 1}</span>
+                  <p class="text-sm text-gray-800 leading-relaxed">${step}</p>
+                </li>
+              `).join('')}
+            </ol>
+          </div>
+        </div>
+      `;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    // Start
+    initApp();
+    navigate('dashboard');
+  </script>
+</body>
+</html>
