@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESTLOS. – Weniger verschwenden. Besser genießen.</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F7F9F7;
+      color: #1F2937;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin-slow { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Toast Benachrichtigung -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden bg-[#162E27] text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-opacity"></div>
+
+  <!-- Navigation -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('dashboard')">
+        <span class="text-2xl font-extrabold tracking-tight text-[#162E27]">RESTLOS.</span>
+        <span class="hidden md:inline-block text-xs text-[#28483A] bg-[#E2F0E4] px-2.5 py-1 rounded-full font-medium">
+          Weniger verschwenden. Besser genießen.
+        </span>
+      </div>
+      <nav class="flex items-center gap-1 sm:gap-2">
+        <button onclick="navigate('dashboard')" id="nav-dashboard" class="nav-btn px-3 py-2 rounded-xl text-sm font-medium transition">Dashboard</button>
+        <button onclick="navigate('fridge')" id="nav-fridge" class="nav-btn px-3 py-2 rounded-xl text-sm font-medium transition">Mein Kühlschrank</button>
+        <button onclick="navigate('add')" id="nav-add" class="nav-btn px-3 py-2 rounded-xl text-sm font-medium transition">+ Hinzufügen</button>
+        <button onclick="navigate('recipes')" id="nav-recipes" class="nav-btn px-3 py-2 rounded-xl text-sm font-medium transition">Rezeptideen</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hauptinhalt -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+
+    <!-- 1. DASHBOARD -->
+    <section id="view-dashboard" class="view-section space-y-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold text-[#162E27]">Hallo! Was kochen wir heute?</h1>
+          <p class="text-gray-600 mt-1">Behalte deine Vorräte im Blick und verwerte Zutaten rechtzeitig.</p>
+        </div>
+        <button onclick="navigate('add')" class="bg-[#28483A] hover:bg-[#162E27] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition self-start">
+          + Lebensmittel hinzufügen
+        </button>
+      </div>
+
+      <!-- Dynamische Infokarten -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div onclick="navigate('fridge', 'all')" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-[#28483A] transition">
+          <p class="text-sm font-medium text-gray-500">Gespeicherte Lebensmittel</p>
+          <p id="stat-total" class="text-3xl font-bold text-[#162E27] mt-2">0</p>
+          <p class="text-xs text-[#28483A] mt-2">Gesamter Bestand</p>
+        </div>
+        <div onclick="navigate('fridge', 'soon')" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-amber-400 transition">
+          <p class="text-sm font-medium text-gray-500">Läuft bald ab (1–7 Tage)</p>
+          <p id="stat-soon" class="text-3xl font-bold text-amber-600 mt-2">0</p>
+          <p class="text-xs text-amber-700 mt-2">Bevorzugt verbrauchen</p>
+        </div>
+        <div onclick="navigate('fridge', 'expired')" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-red-400 transition">
+          <p class="text-sm font-medium text-gray-500">Datum erreicht / überschritten</p>
+          <p id="stat-expired" class="text-3xl font-bold text-red-600 mt-2">0</p>
+          <p class="text-xs text-red-700 mt-2">Bitte prüfen</p>
+        </div>
+      </div>
+
+      <!-- KI-Rezeptgenerator Banner -->
+      <div class="bg-[#E2F0E4] rounded-3xl p-6 sm:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-[#28483A]/10">
+        <div class="space-y-2 max-w-xl">
+          <span class="inline-block text-xs font-bold uppercase tracking-wider text-[#28483A] bg-white px-3 py-1 rounded-full">KI-Rezeptgenerator</span>
+          <h2 class="text-2xl sm:text-3xl font-bold text-[#162E27]">Was kann ich heute kochen?</h2>
+          <p class="text-[#28483A] text-base">Entdecke leckere Rezepte mit deinen vorhandenen Lebensmitteln. Bald ablaufende Zutaten werden automatisch bevorzugt.</p>
+        </div>
+        <button onclick="generateRecipes()" class="bg-[#162E27] hover:bg-[#28483A] text-white px-7 py-4 rounded-2xl font-semibold text-base shadow-md transition whitespace-nowrap flex items-center gap-2">
+          <span>Rezepte generieren</span>
+          <span>→</span>
+        </button>
+      </div>
+
+      <!-- Deine Lebensmittel (Vorschau) -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-[#162E27]">Deine Lebensmittel</h2>
+          <button onclick="navigate('fridge')" class="text-sm font-semibold text-[#28483A] hover:underline">Alle anzeigen →</button>
+        </div>
+        <div id="dashboard-items-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- 2. MEIN KÜHLSCHRANK (ABLAUFDATEN-TRACKER) -->
+    <section id="view-fridge" class="view-section hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-[#162E27]">Mein Kühlschrank & Vorräte</h1>
+          <p class="text-sm text-gray-600">Sortiert nach Dringlichkeit – bald ablaufende Lebensmittel stehen oben.</p>
+        </div>
+        <button onclick="navigate('add')" class="bg-[#162E27] hover:bg-[#28483A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition self-start">
+          + Lebensmittel hinzufügen
+        </button>
+      </div>
+
+      <!-- Filterleiste -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex flex-wrap gap-2">
+          <button onclick="setFridgeFilter('all')" class="filter-chip px-3.5 py-1.5 rounded-xl text-sm font-medium bg-[#162E27] text-white" data-filter="all">Alle</button>
+          <button onclick="setFridgeFilter('soon')" class="filter-chip px-3.5 py-1.5 rounded-xl text-sm font-medium bg-gray-100 text-gray-700" data-filter="soon">Bald ablaufend</button>
+          <button onclick="setFridgeFilter('expired')" class="filter-chip px-3.5 py-1.5 rounded-xl text-sm font-medium bg-gray-100 text-gray-700" data-filter="expired">Überschritten</button>
+          <button onclick="setFridgeFilter('fresh')" class="filter-chip px-3.5 py-1.5 rounded-xl text-sm font-medium bg-gray-100 text-gray-700" data-filter="fresh">Noch frisch</button>
+        </div>
+        <select id="storage-filter" onchange="renderFridge()" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm text-gray-700 bg-white">
+          <option value="all">Alle Lagerorte</option>
+          <option value="Kühlschrank">Kühlschrank</option>
+          <option value="Gefrierschrank">Gefrierschrank</option>
+          <option value="Vorratsschrank">Vorratsschrank</option>
+        </select>
+      </div>
+
+      <div id="fridge-items-list" class="space-y-3"></div>
+    </section>
+
+    <!-- 3. LEBENSMITTEL HINZUFÜGEN -->
+    <section id="view-add" class="view-section hidden space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold text-[#162E27]">Lebensmittel hinzufügen</h1>
+        <p class="text-sm text-gray-600">Wähle ein Produkt aus dem Katalog oder lege ein eigenes Lebensmittel an.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Katalog -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="catalog-search" oninput="renderCatalog()" placeholder="Lebensmittel suchen (z. B. Tomaten, Milch, Lachs)..." class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#28483A]" />
+            <button type="button" onclick="selectCatalogItem('')" class="bg-[#E2F0E4] text-[#162E27] hover:bg-[#28483A] hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition">
+              + Eigenes Produkt
+            </button>
+          </div>
+
+          <!-- Kategorien -->
+          <div id="category-tabs" class="flex flex-wrap gap-2"></div>
+
+          <!-- Produkt-Grid -->
+          <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-2 max-h-[420px] overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Eingabeformular -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit sticky top-24">
+          <h2 id="form-title" class="text-lg font-bold text-[#162E27] mb-4">Details eintragen</h2>
+          <form id="item-form" onsubmit="saveItem(event)" class="space-y-4">
+            <input type="hidden" id="edit-id" value="" />
+            <div>
+              <label for="item-name" class="block text-xs font-semibold text-gray-600 mb-1">Produktname *</label>
+              <input type="text" id="item-name" required placeholder="z. B. Kirschtomaten" class="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#28483A]" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="item-amount" class="block text-xs font-semibold text-gray-600 mb-1">Menge *</label>
+                <input type="number" step="any" min="0.01" id="item-amount" required value="1" class="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#28483A]" />
+              </div>
+              <div>
+                <label for="item-unit" class="block text-xs font-semibold text-gray-600 mb-1">Einheit *</label>
+                <select id="item-unit" class="
